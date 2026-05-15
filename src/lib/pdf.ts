@@ -8,8 +8,9 @@ export async function getPdfjs() {
   if (!pdfjsPromise) {
     pdfjsPromise = (async () => {
       const pdfjs = await import("pdfjs-dist");
-      // @ts-expect-error worker url import
-      const worker = await import("pdfjs-dist/build/pdf.worker.min.mjs?url");
+      const worker = (await import(
+        /* @vite-ignore */ "pdfjs-dist/build/pdf.worker.min.mjs?url"
+      )) as { default: string };
       pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
       return pdfjs;
     })();
