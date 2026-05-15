@@ -1,6 +1,6 @@
 // Lazy-load pdfjs only on the client.
 import type { PDFDocumentProxy } from "pdfjs-dist";
-import { PDFDocument } from "pdf-lib";
+import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 let pdfjsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
 
@@ -8,10 +8,7 @@ export async function getPdfjs() {
   if (!pdfjsPromise) {
     pdfjsPromise = (async () => {
       const pdfjs = await import("pdfjs-dist");
-      const worker = (await import(
-        /* @vite-ignore */ "pdfjs-dist/build/pdf.worker.min.mjs?url"
-      )) as { default: string };
-      pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
+      pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
       return pdfjs;
     })();
   }
@@ -39,17 +36,4 @@ export async function renderPageToCanvas(
   const ctx = canvas.getContext("2d")!;
   await page.render({ canvasContext: ctx, viewport, canvas }).promise;
   return canvas;
-}
-
-export async function exportPdf(
-  originalBytes: Uint8Array,
-  pageIndices: number[],
-): Promise<Uint8Array> {
-  const pdfDoc = await PDFDocument.load(originalBytes);
-  const newPdf = await PDFDocument.create();
-  
-  const copiedPages = await newPdf.copyPages(pdfDoc, pageIndices);
-  copiedPages.forEach((page) => newPdf.addPage(page));
-  
-  return await newPdf.save();
 }
