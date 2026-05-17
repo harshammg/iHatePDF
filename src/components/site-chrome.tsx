@@ -42,7 +42,7 @@ export function Header({ onPrivacy }: { onPrivacy: () => void }) {
             Privacy
           </button>
           <a
-            href="https://github.com"
+            href="https://github.com/harshammg/iHatePDF"
             target="_blank"
             rel="noreferrer"
             className="hover:text-[color:var(--gold)] transition-colors"
@@ -64,7 +64,7 @@ export function Footer() {
           <p>Made for people who just wanted to print one page.</p>
           <div className="flex gap-5">
             <a href="#how-it-works" className="hover:text-foreground">How it works</a>
-            <a href="https://github.com" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a>
+            <a href="https://github.com/harshammg/iHatePDF" target="_blank" rel="noreferrer" className="hover:text-foreground">GitHub</a>
           </div>
         </div>
         <p className="mt-6 text-center text-xs">
