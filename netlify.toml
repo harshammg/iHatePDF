@@ -1,9 +1,0 @@
-[build]
-  command = "npm run build && node -e \"const fs = require('fs'); fs.copyFileSync('public/index.html', 'dist/client/index.html');\""
-  publish = "dist/client"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  force = false
