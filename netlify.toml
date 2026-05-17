@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm run build && node -e \"const fs = require('fs'); fs.copyFileSync('public/index.html', 'dist/client/index.html');\""
   publish = "dist/client"
 
 [[redirects]]
