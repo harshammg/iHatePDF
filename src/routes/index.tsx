@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ClientOnly } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Footer, Header } from "@/components/site-chrome";
 import { UploadZone } from "@/components/upload-zone";
 import { Workspace } from "@/components/workspace";
@@ -22,6 +22,11 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [privacy, setPrivacy] = useState(false);
   const fileBytes = useStore((s) => s.fileBytes);
+  const restoreState = useStore((s) => s.restoreState);
+
+  useEffect(() => {
+    restoreState();
+  }, [restoreState]);
 
   return (
     <div className="min-h-screen flex flex-col">

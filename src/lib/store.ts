@@ -1,4 +1,6 @@
 import { create } from "zustand";
+import { cacheManager } from "./cache";
+import { storeState, retrieveState, storeFileBytes, retrieveFileBytes, clearAllPersistedData } from "./state-persistence";
 
 export type ExportFormat = "pdf" | "jpg" | "png" | "svg" | "flutter";
 
@@ -42,6 +44,7 @@ type State = {
   setFormat: (f: ExportFormat) => void;
   patch: (p: Partial<State>) => void;
   reset: () => void;
+  restoreState: () => Promise<void>;
 };
 
 const initial = {
@@ -66,9 +69,20 @@ let lastAnchor: string | null = null;
 
 export const useStore = create<State>((set, get) => ({
   ...initial,
-  setFile: (name, bytes) => set({ fileName: name, fileBytes: bytes }),
-  setPages: (pages) => set({ pages, activeId: pages[0]?.id ?? null }),
-  setActive: (id) => set({ activeId: id }),
+  setFile: async (name, bytes) => {
+    cacheManager.setFile(bytes);
+    await storeFileBytes(name, bytes);
+    set({ fileName: name, fileBytes: bytes });
+    storeState(get());
+  },
+  setPages: (pages) => {
+    set({ pages, activeId: pages[0]?.id ?? null });
+    storeState(get());
+  },
+  setActive: (id) => {
+    set({ activeId: id });
+    storeState(get());
+  },
   toggleSelect: (id, opts) => {
     const { pages } = get();
     if (opts?.range && lastAnchor) {
@@ -82,6 +96,7 @@ export const useStore = create<State>((set, get) => ({
             i >= lo && i <= hi && !p.removed ? { ...p, selected: target } : p,
           ),
         });
+        storeState(get());
         return;
       }
     }
@@ -97,17 +112,22 @@ export const useStore = create<State>((set, get) => ({
       });
     }
     lastAnchor = id;
+    storeState(get());
   },
-  selectAll: (val) =>
+  selectAll: (val) => {
     set({
       pages: get().pages.map((p) => (p.removed ? p : { ...p, selected: val })),
-    }),
-  removePage: (id) =>
+    });
+    storeState(get());
+  },
+  removePage: (id) => {
     set({
       pages: get().pages.map((p) =>
         p.id === id ? { ...p, removed: true, selected: false } : p,
       ),
-    }),
+    });
+    storeState(get());
+  },
   reorder: (fromId, toId) => {
     const pages = [...get().pages];
     const from = pages.findIndex((p) => p.id === fromId);
@@ -116,13 +136,41 @@ export const useStore = create<State>((set, get) => ({
     const [m] = pages.splice(from, 1);
     pages.splice(to, 0, m);
     set({ pages });
+    storeState(get());
   },
-  setCrop: (c) => set({ crop: c }),
-  setApplyCropAll: (v) => set({ applyCropToAll: v }),
-  setFormat: (f) => set({ format: f }),
-  patch: (p) => set(p as State),
-  reset: () => {
+  setCrop: (c) => {
+    set({ crop: c });
+    storeState(get());
+  },
+  setApplyCropAll: (v) => {
+    set({ applyCropToAll: v });
+    storeState(get());
+  },
+  setFormat: (f) => {
+    set({ format: f });
+    storeState(get());
+  },
+  patch: (p) => {
+    set(p as State);
+    storeState(get());
+  },
+  reset: async () => {
     lastAnchor = null;
+    cacheManager.clear();
+    await clearAllPersistedData();
     set({ ...initial });
+  },
+  restoreState: async () => {
+    const storedState = retrieveState();
+    const storedBytes = await retrieveFileBytes();
+    
+    if (storedState && storedBytes) {
+      set({
+        ...storedState,
+        fileBytes: storedBytes,
+        loading: false,
+        progress: 100,
+      });
+    }
   },
 }));

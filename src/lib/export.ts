@@ -1,9 +1,11 @@
 import { PDFDocument } from "pdf-lib";
+import JSZip from "jszip";
 import type { PdfPage, ExportFormat, CropRect } from "./store";
 import { loadPdf, renderPageToCanvas } from "./pdf";
 
 type ExportOpts = {
   bytes: Uint8Array;
+  fileName: string | null;
   pages: PdfPage[];
   crop: CropRect;
   applyCropToAll: boolean;
@@ -146,6 +148,29 @@ async function exportSvg(opts: ExportOpts, sel: PdfPage[], onProgress?: ExportOp
   // (True vector SVG would require significantly more work; this preserves layout faithfully.)
   const doc = await loadPdf(opts.bytes);
   const scale = 2;
+  const baseFileName = opts.fileName ? opts.fileName.replace(/\.pdf$/i, "") : "ihatepdf";
+  
+  // If only one SVG, download directly without ZIP
+  if (sel.length === 1) {
+    const p = sel[0];
+    onProgress?.(50, "Wrapping page…");
+    const canvas = await renderPageToCanvas(doc, p.index, scale);
+    const c = cropForPage(p, opts.crop, opts.applyCropToAll);
+    const cw = c ? canvas.width * c.w : canvas.width;
+    const ch = c ? canvas.height * c.h : canvas.height;
+    const dataUrl = canvas.toDataURL("image/png");
+    const sx = c ? -canvas.width * c.x : 0;
+    const sy = c ? -canvas.height * c.y : 0;
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">
+  <image href="${dataUrl}" x="${sx}" y="${sy}" width="${canvas.width}" height="${canvas.height}"/>
+</svg>`;
+    downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${baseFileName}.svg`);
+    onProgress?.(100);
+    return;
+  }
+  
+  // Multiple SVGs: bundle into ZIP
+  const zip = new JSZip();
   for (let i = 0; i < sel.length; i++) {
     const p = sel[i];
     onProgress?.(Math.round((i / sel.length) * 90), "Wrapping page " + (i + 1) + "…");
@@ -159,8 +184,12 @@ async function exportSvg(opts: ExportOpts, sel: PdfPage[], onProgress?: ExportOp
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">
   <image href="${dataUrl}" x="${sx}" y="${sy}" width="${canvas.width}" height="${canvas.height}"/>
 </svg>`;
-    downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${baseName(opts)}-p${p.index + 1}.svg`);
+    zip.file(`${baseFileName} ${i + 1}.svg`, svg);
   }
+  
+  onProgress?.(95, "Zipping files…");
+  const zipBlob = await zip.generateAsync({ type: "blob" });
+  downloadBlob(zipBlob, `${baseFileName}.zip`);
   onProgress?.(100);
 }
 

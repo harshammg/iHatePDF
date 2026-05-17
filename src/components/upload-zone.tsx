@@ -2,8 +2,8 @@ import { motion } from "framer-motion";
 import { useCallback, useRef, useState } from "react";
 import { FileWarning, Lock, UploadCloud } from "lucide-react";
 
-const FEATURES = ["Select Pages", "Crop", "Export PDF", "Export Image", "Flutter Code"];
-const MAX_BYTES = 50 * 1024 * 1024;
+const FEATURES = ["Select Pages", "Crop", "Export PDF", "Export Image", "Export SVG"];
+const MAX_BYTES = 100 * 1024 * 1024;
 
 export function UploadZone({
   onFile,
@@ -105,7 +105,7 @@ export function UploadZone({
 
       <p className="mt-12 text-xs text-muted-foreground">
         <FileWarning className="inline h-3.5 w-3.5 mr-1" />
-        Max 50MB. We're not magicians.
+        Max 100MB. We're not magicians.
       </p>
     </section>
   );

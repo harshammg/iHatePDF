@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { useStore, type ExportFormat } from "@/lib/store";
 import { estimateSize, exportedPages, runExport } from "@/lib/export";
 
-const TABS: { id: ExportFormat; label: string }[] = [
+const TABS: { id: ExportFormat; label: string; disabled?: boolean }[] = [
   { id: "pdf", label: "PDF" },
   { id: "jpg", label: "JPG" },
   { id: "png", label: "PNG" },
   { id: "svg", label: "SVG" },
-  { id: "flutter", label: "Flutter" },
+  { id: "flutter", label: "Flutter", disabled: true },
 ];
 
 export function ExportSidebar() {
@@ -24,6 +24,7 @@ export function ExportSidebar() {
     }
     estimateSize({
       bytes: s.fileBytes,
+      fileName: s.fileName,
       pages: s.pages,
       crop: s.crop,
       applyCropToAll: s.applyCropToAll,
@@ -41,6 +42,7 @@ export function ExportSidebar() {
     try {
       await runExport({
         bytes: s.fileBytes,
+        fileName: s.fileName,
         pages: s.pages,
         crop: s.crop,
         applyCropToAll: s.applyCropToAll,
@@ -67,14 +69,19 @@ export function ExportSidebar() {
         {TABS.map((t) => (
           <button
             key={t.id}
-            onClick={() => s.setFormat(t.id)}
+            onClick={() => !t.disabled && s.setFormat(t.id)}
+            disabled={t.disabled}
             className={`rounded px-1 py-1.5 text-xs transition ${
-              s.format === t.id
+              t.disabled
+                ? "text-muted-foreground/50 cursor-not-allowed"
+                : s.format === t.id
                 ? "bg-[color:var(--gold)]/20 text-foreground font-semibold"
                 : "text-muted-foreground hover:text-foreground"
             }`}
+            title={t.disabled ? "Coming soon" : ""}
           >
             {t.label}
+            {t.disabled && <span className="block text-[10px]">Soon</span>}
           </button>
         ))}
       </div>
@@ -107,17 +114,7 @@ export function ExportSidebar() {
           <p className="text-xs text-muted-foreground">No options. SVG just is what it is.</p>
         )}
         {s.format === "flutter" && (
-          <div>
-            <label className="mb-1 block text-xs text-muted-foreground">Widget type</label>
-            <select
-              value={s.flutterWidget}
-              onChange={(e) => s.patch({ flutterWidget: e.target.value as "PdfPageView" | "CustomPainter" })}
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-            >
-              <option value="PdfPageView">PdfPageView (pdfx)</option>
-              <option value="CustomPainter">CustomPainter scaffold</option>
-            </select>
-          </div>
+          <p className="text-xs text-muted-foreground">Flutter export is coming soon. This feature is open for contributors.</p>
         )}
       </div>
 
