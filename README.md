@@ -22,8 +22,8 @@ A modern, browser-based PDF manipulation tool that makes working with PDFs less 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ihatepdf.git
-cd ihatepdf/pdf-wizard
+git clone https://github.com/harshammg/iHatePDF.git
+cd pdf-wizard
 ```
 
 2. Install dependencies:
@@ -55,6 +55,8 @@ bun run build
 # or
 yarn build
 ```
+
+After building, you can serve the `dist/client` directory with any static file server.
 
 ## Configuration
 
@@ -105,7 +107,3 @@ MIT License - feel free to use this project for personal or commercial purposes.
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Support
-
-For issues, questions, or suggestions, please open an issue on the GitHub repository.
