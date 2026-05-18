@@ -23,6 +23,8 @@ export function CropOverlay({
   const setCrop = useStore((s) => s.setCrop);
   const applyAll = useStore((s) => s.applyCropToAll);
   const setApplyAll = useStore((s) => s.setApplyCropAll);
+  const rotation = useStore((s) => s.rotation);
+  const setRotation = useStore((s) => s.setRotation);
   const [preset, setPreset] = useState<PresetName>("Freeform");
   const wrapRef = useRef<HTMLDivElement>(null);
   const [box, setBox] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
@@ -149,6 +151,37 @@ export function CropOverlay({
           />
           Apply to all selected
         </label>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-center gap-2 text-xs">
+        <span className="text-muted-foreground">Rotate:</span>
+        <button
+          onClick={() => setRotation((rotation - 90 + 360) % 360)}
+          className="rounded border border-border bg-card px-2 py-1 hover:border-[color:var(--gold)]"
+        >
+          -90°
+        </button>
+        <button
+          onClick={() => setRotation((rotation + 90) % 360)}
+          className="rounded border border-border bg-card px-2 py-1 hover:border-[color:var(--gold)]"
+        >
+          +90°
+        </button>
+        <button
+          onClick={() => setRotation(0)}
+          className="rounded border border-border bg-card px-2 py-1 hover:border-[color:var(--gold)]"
+        >
+          0°
+        </button>
+        <input
+          type="number"
+          value={rotation}
+          onChange={(e) => setRotation(Number(e.target.value) % 360)}
+          className="w-16 rounded border border-border bg-card px-2 py-1 text-center"
+          min="0"
+          max="359"
+        />
+        <span className="text-muted-foreground">degrees</span>
       </div>
 
       <div ref={wrapRef} className="relative flex-1 w-full">

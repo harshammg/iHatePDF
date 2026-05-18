@@ -1,4 +1,4 @@
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, degrees } from "pdf-lib";
 import JSZip from "jszip";
 import type { PdfPage, ExportFormat, CropRect } from "./store";
 import { loadPdf, renderPageToCanvas } from "./pdf";
@@ -9,6 +9,7 @@ type ExportOpts = {
   pages: PdfPage[];
   crop: CropRect;
   applyCropToAll: boolean;
+  rotation: number;
   format: ExportFormat;
   jpgQuality: number;
   imageDpi: 72 | 150 | 300;
@@ -92,6 +93,9 @@ async function exportPdf(opts: ExportOpts, sel: PdfPage[], onProgress?: ExportOp
       page.setCropBox(x, y, w, h);
       page.setMediaBox(x, y, w, h);
     }
+    if (opts.rotation) {
+      page.setRotation(degrees(opts.rotation));
+    }
     out.addPage(page);
     onProgress?.(10 + Math.round(((i + 1) / sel.length) * 80));
   });
@@ -114,20 +118,38 @@ async function exportRaster(opts: ExportOpts, sel: PdfPage[], onProgress?: Expor
     const canvas = await renderPageToCanvas(doc, p.index, scale);
     const c = cropForPage(p, opts.crop, opts.applyCropToAll);
     let final = canvas;
-    if (c) {
-      final = document.createElement("canvas");
-      final.width = Math.max(1, Math.round(canvas.width * c.w));
-      final.height = Math.max(1, Math.round(canvas.height * c.h));
-      const ctx = final.getContext("2d")!;
-      ctx.drawImage(
-        canvas,
-        canvas.width * c.x,
-        canvas.height * c.y,
-        canvas.width * c.w,
-        canvas.height * c.h,
-        0, 0, final.width, final.height,
-      );
+
+    // Apply rotation
+    if (opts.rotation) {
+      const rotated = document.createElement("canvas");
+      const rad = (opts.rotation * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      rotated.width = canvas.width * cos + canvas.height * sin;
+      rotated.height = canvas.width * sin + canvas.height * cos;
+      const ctx = rotated.getContext("2d")!;
+      ctx.translate(rotated.width / 2, rotated.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+      final = rotated;
     }
+
+    if (c) {
+      const cropped = document.createElement("canvas");
+      cropped.width = Math.max(1, Math.round(final.width * c.w));
+      cropped.height = Math.max(1, Math.round(final.height * c.h));
+      const ctx = cropped.getContext("2d")!;
+      ctx.drawImage(
+        final,
+        final.width * c.x,
+        final.height * c.y,
+        final.width * c.w,
+        final.height * c.h,
+        0, 0, cropped.width, cropped.height,
+      );
+      final = cropped;
+    }
+
     const blob: Blob = await new Promise((res) =>
       final.toBlob((b) => res(b!), mime, opts.format === "jpg" ? opts.jpgQuality / 100 : undefined),
     );
@@ -149,44 +171,55 @@ async function exportSvg(opts: ExportOpts, sel: PdfPage[], onProgress?: ExportOp
   const doc = await loadPdf(opts.bytes);
   const scale = 2;
   const baseFileName = opts.fileName ? opts.fileName.replace(/\.pdf$/i, "") : "ihatepdf";
-  
-  // If only one SVG, download directly without ZIP
-  if (sel.length === 1) {
-    const p = sel[0];
-    onProgress?.(50, "Wrapping page…");
-    const canvas = await renderPageToCanvas(doc, p.index, scale);
+
+  const renderSvg = async (p: PdfPage) => {
+    let canvas = await renderPageToCanvas(doc, p.index, scale);
+
+    // Apply rotation
+    if (opts.rotation) {
+      const rotated = document.createElement("canvas");
+      const rad = (opts.rotation * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      rotated.width = canvas.width * cos + canvas.height * sin;
+      rotated.height = canvas.width * sin + canvas.height * cos;
+      const ctx = rotated.getContext("2d")!;
+      ctx.translate(rotated.width / 2, rotated.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2);
+      canvas = rotated;
+    }
+
     const c = cropForPage(p, opts.crop, opts.applyCropToAll);
     const cw = c ? canvas.width * c.w : canvas.width;
     const ch = c ? canvas.height * c.h : canvas.height;
     const dataUrl = canvas.toDataURL("image/png");
     const sx = c ? -canvas.width * c.x : 0;
     const sy = c ? -canvas.height * c.y : 0;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">
   <image href="${dataUrl}" x="${sx}" y="${sy}" width="${canvas.width}" height="${canvas.height}"/>
 </svg>`;
+  };
+
+  // If only one SVG, download directly without ZIP
+  if (sel.length === 1) {
+    const p = sel[0];
+    onProgress?.(50, "Wrapping page…");
+    const svg = await renderSvg(p);
     downloadBlob(new Blob([svg], { type: "image/svg+xml" }), `${baseFileName}.svg`);
     onProgress?.(100);
     return;
   }
-  
+
   // Multiple SVGs: bundle into ZIP
   const zip = new JSZip();
   for (let i = 0; i < sel.length; i++) {
     const p = sel[i];
     onProgress?.(Math.round((i / sel.length) * 90), "Wrapping page " + (i + 1) + "…");
-    const canvas = await renderPageToCanvas(doc, p.index, scale);
-    const c = cropForPage(p, opts.crop, opts.applyCropToAll);
-    const cw = c ? canvas.width * c.w : canvas.width;
-    const ch = c ? canvas.height * c.h : canvas.height;
-    const dataUrl = canvas.toDataURL("image/png");
-    const sx = c ? -canvas.width * c.x : 0;
-    const sy = c ? -canvas.height * c.y : 0;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" viewBox="0 0 ${cw} ${ch}">
-  <image href="${dataUrl}" x="${sx}" y="${sy}" width="${canvas.width}" height="${canvas.height}"/>
-</svg>`;
+    const svg = await renderSvg(p);
     zip.file(`${baseFileName} ${i + 1}.svg`, svg);
   }
-  
+
   onProgress?.(95, "Zipping files…");
   const zipBlob = await zip.generateAsync({ type: "blob" });
   downloadBlob(zipBlob, `${baseFileName}.zip`);

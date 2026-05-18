@@ -23,6 +23,7 @@ type State = {
   activeId: string | null;
   crop: CropRect;
   applyCropToAll: boolean;
+  rotation: number;
   format: ExportFormat;
   jpgQuality: number;
   imageDpi: 72 | 150 | 300;
@@ -41,6 +42,7 @@ type State = {
   reorder: (fromId: string, toId: string) => void;
   setCrop: (c: CropRect) => void;
   setApplyCropAll: (v: boolean) => void;
+  setRotation: (deg: number) => void;
   setFormat: (f: ExportFormat) => void;
   patch: (p: Partial<State>) => void;
   reset: () => void;
@@ -54,6 +56,7 @@ const initial = {
   activeId: null,
   crop: null,
   applyCropToAll: false,
+  rotation: 0,
   format: "pdf" as ExportFormat,
   jpgQuality: 85,
   imageDpi: 150 as const,
@@ -144,6 +147,10 @@ export const useStore = create<State>((set, get) => ({
   },
   setApplyCropAll: (v) => {
     set({ applyCropToAll: v });
+    storeState(get());
+  },
+  setRotation: (deg) => {
+    set({ rotation: deg });
     storeState(get());
   },
   setFormat: (f) => {

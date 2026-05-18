@@ -28,13 +28,14 @@ export function ExportSidebar() {
       pages: s.pages,
       crop: s.crop,
       applyCropToAll: s.applyCropToAll,
+      rotation: s.rotation,
       format: s.format,
       jpgQuality: s.jpgQuality,
       imageDpi: s.imageDpi,
       pdfCompression: s.pdfCompression,
       flutterWidget: s.flutterWidget,
     }).then(setSize);
-  }, [s.format, s.jpgQuality, s.imageDpi, s.pdfCompression, s.crop, s.applyCropToAll, s.pages, s.fileBytes, selCount]);
+  }, [s.format, s.jpgQuality, s.imageDpi, s.pdfCompression, s.crop, s.applyCropToAll, s.rotation, s.pages, s.fileBytes, selCount]);
 
   const onExport = async () => {
     if (!s.fileBytes || selCount === 0) return;
@@ -46,6 +47,7 @@ export function ExportSidebar() {
         pages: s.pages,
         crop: s.crop,
         applyCropToAll: s.applyCropToAll,
+        rotation: s.rotation,
         format: s.format,
         jpgQuality: s.jpgQuality,
         imageDpi: s.imageDpi,
