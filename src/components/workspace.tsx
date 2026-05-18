@@ -236,7 +236,7 @@ function CenterPreview() {
       </div>
       <div ref={containerRef} className="relative flex-1 overflow-auto bg-[color:var(--warm-gray)]/40 p-6 flex items-center justify-center">
         {canvas && active ? (
-          <CropOverlay imageDataUrl={canvas.data} pageW={canvas.w} pageH={canvas.h} />
+          <CropOverlay imageDataUrl={canvas.data} pageW={canvas.w} pageH={canvas.h} pageId={active.id} />
         ) : (
           <div className="flex flex-col items-center gap-3 text-muted-foreground">
             <CrumpledIcon className="h-10 w-10 animate-paper-crunch text-[color:var(--gold)]" />

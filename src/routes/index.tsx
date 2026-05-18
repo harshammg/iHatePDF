@@ -87,6 +87,7 @@ function UploadGate() {
           thumbnail: canvas.toDataURL("image/jpeg", 0.7),
           selected: true,
           removed: false,
+          crop: null,
         });
       }
       setPages(pages);

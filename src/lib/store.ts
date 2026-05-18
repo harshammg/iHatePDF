@@ -14,6 +14,7 @@ export type PdfPage = {
   thumbnail: string;   // dataURL
   selected: boolean;
   removed: boolean;
+  crop: CropRect;      // per-page crop
 };
 
 type State = {
@@ -23,7 +24,6 @@ type State = {
   activeId: string | null;
   crop: CropRect;
   applyCropToAll: boolean;
-  rotation: number;
   format: ExportFormat;
   jpgQuality: number;
   imageDpi: 72 | 150 | 300;
@@ -41,8 +41,8 @@ type State = {
   removePage: (id: string) => void;
   reorder: (fromId: string, toId: string) => void;
   setCrop: (c: CropRect) => void;
+  setPageCrop: (id: string, c: CropRect) => void;
   setApplyCropAll: (v: boolean) => void;
-  setRotation: (deg: number) => void;
   setFormat: (f: ExportFormat) => void;
   patch: (p: Partial<State>) => void;
   reset: () => void;
@@ -56,7 +56,6 @@ const initial = {
   activeId: null,
   crop: null,
   applyCropToAll: false,
-  rotation: 0,
   format: "pdf" as ExportFormat,
   jpgQuality: 85,
   imageDpi: 150 as const,
@@ -145,12 +144,25 @@ export const useStore = create<State>((set, get) => ({
     set({ crop: c });
     storeState(get());
   },
-  setApplyCropAll: (v) => {
-    set({ applyCropToAll: v });
+  setPageCrop: (id, c) => {
+    const { pages, applyCropToAll } = get();
+    if (applyCropToAll) {
+      // If applyCropToAll is true, set crop on all pages
+      set({
+        pages: pages.map((p) => ({ ...p, crop: c })),
+        crop: c,
+      });
+    } else {
+      // Otherwise, set crop only on the specific page
+      set({
+        pages: pages.map((p) => (p.id === id ? { ...p, crop: c } : p)),
+        crop: c,
+      });
+    }
     storeState(get());
   },
-  setRotation: (deg) => {
-    set({ rotation: deg });
+  setApplyCropAll: (v) => {
+    set({ applyCropToAll: v });
     storeState(get());
   },
   setFormat: (f) => {
